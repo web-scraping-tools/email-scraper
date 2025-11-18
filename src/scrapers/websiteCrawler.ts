@@ -13,6 +13,8 @@ export interface WebsiteCrawlerOptions {
   timeout?: number;
   useBrowser?: boolean;
   browser?: Browser;
+  onPageVisited?: (url: string, depth: number, emailCount: number) => void;
+  onError?: (url: string, error: Error) => void;
 }
 
 /**
@@ -74,6 +76,8 @@ export async function scrapeEmailsFromWebsite(
     timeout = 30000,
     useBrowser = false,
     browser,
+    onPageVisited,
+    onError,
   } = options;
 
   const allEmails = new Set<string>();
@@ -84,7 +88,11 @@ export async function scrapeEmailsFromWebsite(
   while (toVisit.length > 0 && visited.size < maxPages) {
     const { url, depth } = toVisit.shift()!;
 
-    if (visited.has(url) || depth > maxDepth) {
+    if (visited.has(url)) {
+      continue;
+    }
+
+    if (depth > maxDepth) {
       continue;
     }
 
@@ -124,6 +132,11 @@ export async function scrapeEmailsFromWebsite(
       // Merge emails
       emails.forEach((email) => allEmails.add(email));
 
+      // Notify about page visit
+      if (onPageVisited) {
+        onPageVisited(url, depth, emails.size);
+      }
+
       // Extract links for next depth level
       if (depth < maxDepth) {
         const links = extractLinks(html, url);
@@ -134,7 +147,12 @@ export async function scrapeEmailsFromWebsite(
         });
       }
     } catch (error) {
-      console.error(`Error scraping ${url}:`, error instanceof Error ? error.message : error);
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      if (onError) {
+        onError(url, errorObj);
+      } else {
+        console.error(`Error scraping ${url}:`, errorObj.message);
+      }
       // Continue with other URLs
     }
   }
