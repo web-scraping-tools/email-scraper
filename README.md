@@ -21,11 +21,6 @@ Whether you need to scrape emails from a single contact page or crawl an entire 
 
 ## Installation
 
-### Prerequisites
-
-- Node.js 20 or higher
-- npm or yarn
-
 ### Setup
 
 1. Clone this repository:
